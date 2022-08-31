@@ -39,7 +39,7 @@ class _FlexWithMainChildState extends State<FlexWithMainChild> {
 
   @override
   Widget build(BuildContext context) {
-    WidgetsBinding.instance!.addPostFrameCallback((_) {
+    _ambiguate(WidgetsBinding.instance)!.addPostFrameCallback((_) {
       final double crossAxisSize;
       if (widget.direction == Axis.vertical) {
         crossAxisSize = (widget.mainChildKey.currentContext!.findRenderObject()!
@@ -78,4 +78,13 @@ class _FlexWithMainChildState extends State<FlexWithMainChild> {
         clipBehavior: widget.clipBehavior,
         children: widget.children,
       );
+
+  /// credit: https://github.com/CoderUni/responsive_sizer/commit/e6bb1643b8769c951eeeac5d7dc8d198fc5ce6a6#diff-0730f7244987f77976094a672f55f4401ca3cd433c91e8dcfe8ab7c1525fa620
+  /// This allows a value of type T or T?
+  /// to be treated as a value of type T?.
+  ///
+  /// We use this so that APIs that have become
+  /// non-nullable can still be used with `!` and `?`
+  /// to support older versions of the API as well.
+  static T? _ambiguate<T>(T? value) => value;
 }

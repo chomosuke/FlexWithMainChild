@@ -25,16 +25,16 @@ class Example extends StatelessWidget {
           children: [
             // Because the underlying implementation uses Flex, any child that work
             // in Column will work exactly the same way in ColumnWithMainChild.
-            Spacer(flex: 5),
-            Text('very very very very long description'),
-            Spacer(),
+            const Spacer(flex: 5),
+            const Text('very very very very long description'),
+            const Spacer(),
             Text(
               'short Title',
               key: mainChildKey,
             ),
-            Spacer(),
-            Text('another very very very very very long text'),
-            Spacer(flex: 10),
+            const Spacer(),
+            const Text('another very very very very very long text'),
+            const Spacer(flex: 10),
           ],
           mainChildKey: mainChildKey,
         ),
