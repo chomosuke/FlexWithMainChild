@@ -26,7 +26,7 @@ Add `flex_with_main_child: <version>` under `dependencies` in your `pubspec.yaml
 
 ## How it works
 
-After it renders, it check if the crossAxisSize of the flex is the same as the size obtain from `mainChildKey`. If not, it'll render again with the crossAxisSize set to the size previously measured from `mainChildKey`. It'll keep rerendering until the size matches.
+After it renders, it checks if the crossAxisSize of the flex is the same as the size obtain from `mainChildKey`. If not, it'll render again with the crossAxisSize set to the size previously measured from `mainChildKey`. It'll keep re-rendering until the size matches.
 
 ## Usage
 
@@ -61,12 +61,12 @@ Widget build(BuildContext context) {
 }
 ```
 
-The above code will give:  
+The above code will give:
 ![example](https://raw.githubusercontent.com/chomosuke/flex_with_main_child/master/example.png)
 
 ## Additional information
 
-Note that SizedBox sometimes will be forced to fit parent (e.g. when the parent is the screen). When this happen, place the FlexWithMainChild into a Center or some other intermediate containers. 
+Note that SizedBox will sometimes be forced to fit parent (e.g. when the parent is the screen). When this happens, place the FlexWithMainChild into a Center or some other intermediate containers. 
 
 ## Contribution & bug report
 
