@@ -1,9 +1,21 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
-/// A widget that's identical to `Flex` in `flutter/widgets.dart` except it
-/// tries to match the its cross axis size with its `mainChild`.
-/// `mainChild` must have a GlobalKey attached for size measuring.
-class FlexWithMainChild extends StatefulWidget {
+class FlexWithMainChild extends MultiChildRenderObjectWidget {
+  FlexWithMainChild({
+    super.key,
+    required this.direction,
+    this.mainAxisAlignment = MainAxisAlignment.start,
+    this.mainAxisSize = MainAxisSize.max,
+    this.crossAxisAlignment = CrossAxisAlignment.center,
+    this.textDirection,
+    this.verticalDirection = VerticalDirection.down,
+    this.textBaseline, // NO DEFAULT: we don't know what the text's baseline should be
+    this.clipBehavior = Clip.none,
+    super.children,
+  }) : assert(crossAxisAlignment != CrossAxisAlignment.baseline || textBaseline != null, 'textBaseline is required if you specify the crossAxisAlignment with CrossAxisAlignment.baseline');
+
   final Axis direction;
   final MainAxisAlignment mainAxisAlignment;
   final MainAxisSize mainAxisSize;
@@ -12,79 +24,112 @@ class FlexWithMainChild extends StatefulWidget {
   final VerticalDirection verticalDirection;
   final TextBaseline? textBaseline;
   final Clip clipBehavior;
-  final List<Widget> children;
-  final GlobalKey mainChildKey;
 
-  /// Identical constructor to `Flex` in `flutter/widgets.dart`.
-  const FlexWithMainChild({
-    Key? key,
-    required this.direction,
-    this.mainAxisAlignment = MainAxisAlignment.start,
-    this.mainAxisSize = MainAxisSize.max,
-    this.crossAxisAlignment = CrossAxisAlignment.center,
-    this.textDirection,
-    this.verticalDirection = VerticalDirection.down,
-    this.textBaseline,
-    this.clipBehavior = Clip.none,
-    required this.children,
-    required this.mainChildKey,
-  }) : super(key: key);
+  bool get _needTextDirection {
+    switch (direction) {
+      case Axis.horizontal:
+        return true; // because it affects the layout order.
+      case Axis.vertical:
+        return crossAxisAlignment == CrossAxisAlignment.start
+            || crossAxisAlignment == CrossAxisAlignment.end;
+    }
+  }
+
+  @protected
+  TextDirection? getEffectiveTextDirection(BuildContext context) {
+    return textDirection ?? (_needTextDirection ? Directionality.maybeOf(context) : null);
+  }
 
   @override
-  State<StatefulWidget> createState() => _FlexWithMainChildState();
-}
-
-class _FlexWithMainChildState extends State<FlexWithMainChild> {
-  double? crossAxisSize;
-
-  @override
-  Widget build(BuildContext context) {
-    _ambiguate(WidgetsBinding.instance)!.addPostFrameCallback((_) {
-      final double crossAxisSize;
-      if (widget.direction == Axis.vertical) {
-        crossAxisSize = (widget.mainChildKey.currentContext!.findRenderObject()!
-                as RenderBox)
-            .size
-            .width;
-      } else {
-        crossAxisSize = (widget.mainChildKey.currentContext!.findRenderObject()!
-                as RenderBox)
-            .size
-            .height;
-      }
-      if (this.crossAxisSize != crossAxisSize) {
-        setState(() {
-          this.crossAxisSize = crossAxisSize;
-        });
-      }
-    });
-    return SizedBox(
-      width: widget.direction == Axis.vertical ? crossAxisSize : null,
-      height: widget.direction == Axis.horizontal ? crossAxisSize : null,
-      child: _getFlex(),
+  RenderFlex createRenderObject(BuildContext context) {
+    return RenderFlex(
+      direction: direction,
+      mainAxisAlignment: mainAxisAlignment,
+      mainAxisSize: mainAxisSize,
+      crossAxisAlignment: crossAxisAlignment,
+      textDirection: getEffectiveTextDirection(context),
+      verticalDirection: verticalDirection,
+      textBaseline: textBaseline,
+      clipBehavior: clipBehavior,
     );
   }
 
-  Widget _getFlex() => Flex(
-        direction: widget.direction,
-        mainAxisAlignment: widget.mainAxisAlignment,
-        mainAxisSize: widget.mainAxisSize,
-        // this is to combat CrossAxisAlignment.stretch
-        // which forces child to take up all the space
-        crossAxisAlignment: widget.crossAxisAlignment,
-        textDirection: widget.textDirection,
-        verticalDirection: widget.verticalDirection,
-        textBaseline: widget.textBaseline,
-        clipBehavior: widget.clipBehavior,
-        children: widget.children,
-      );
+  @override
+  void updateRenderObject(BuildContext context, covariant RenderFlex renderObject) {
+    renderObject
+      ..direction = direction
+      ..mainAxisAlignment = mainAxisAlignment
+      ..mainAxisSize = mainAxisSize
+      ..crossAxisAlignment = crossAxisAlignment
+      ..textDirection = getEffectiveTextDirection(context)
+      ..verticalDirection = verticalDirection
+      ..textBaseline = textBaseline
+      ..clipBehavior = clipBehavior;
+  }
 
-  /// credit: https://github.com/CoderUni/responsive_sizer/commit/e6bb1643b8769c951eeeac5d7dc8d198fc5ce6a6#diff-0730f7244987f77976094a672f55f4401ca3cd433c91e8dcfe8ab7c1525fa620
-  /// This allows a value of type T or T?
-  /// to be treated as a value of type T?.
-  ///
-  /// We use this so that APIs that have become
-  /// non-nullable can still be used with `!` and `?`
-  /// to support older versions of the API as well.
-  static T? _ambiguate<T>(T? value) => value;
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(EnumProperty<Axis>('direction', direction));
+    properties.add(EnumProperty<MainAxisAlignment>('mainAxisAlignment', mainAxisAlignment));
+    properties.add(EnumProperty<MainAxisSize>('mainAxisSize', mainAxisSize, defaultValue: MainAxisSize.max));
+    properties.add(EnumProperty<CrossAxisAlignment>('crossAxisAlignment', crossAxisAlignment));
+    properties.add(EnumProperty<TextDirection>('textDirection', textDirection, defaultValue: null));
+    properties.add(EnumProperty<VerticalDirection>('verticalDirection', verticalDirection, defaultValue: VerticalDirection.down));
+    properties.add(EnumProperty<TextBaseline>('textBaseline', textBaseline, defaultValue: null));
+  }
+}
+
+class Flexible extends ParentDataWidget<FlexParentData> {
+  const Flexible({
+    super.key,
+    this.flex = 1,
+    this.fit = FlexFit.loose,
+    required super.child,
+  });
+
+  final int flex;
+
+  final FlexFit fit;
+
+  @override
+  void applyParentData(RenderObject renderObject) {
+    assert(renderObject.parentData is FlexParentData);
+    final FlexParentData parentData = renderObject.parentData! as FlexParentData;
+    bool needsLayout = false;
+
+    if (parentData.flex != flex) {
+      parentData.flex = flex;
+      needsLayout = true;
+    }
+
+    if (parentData.fit != fit) {
+      parentData.fit = fit;
+      needsLayout = true;
+    }
+
+    if (needsLayout) {
+      final AbstractNode? targetParent = renderObject.parent;
+      if (targetParent is RenderObject) {
+        targetParent.markNeedsLayout();
+      }
+    }
+  }
+
+  @override
+  Type get debugTypicalAncestorWidgetClass => Flex;
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(IntProperty('flex', flex));
+  }
+}
+
+class Expanded extends Flexible {
+  const Expanded({
+    super.key,
+    super.flex,
+    required super.child,
+  }) : super(fit: FlexFit.tight);
 }
